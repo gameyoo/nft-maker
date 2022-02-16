@@ -1,0 +1,18 @@
+[programs.localnet]
+nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
+[programs.devnet]
+nft_maker = "BBbP5MHFSfcoygAtaPpWUmiEdb7yW2mZHDzg2MTnAsVa"
+[programs.testnet]
+nft_maker = "BBbP5MHFSfcoygAtaPpWUmiEdb7yW2mZHDzg2MTnAsVa"
+[programs.mainnet]
+nft_maker = "8e72pYCDaxu3GqMfeQ5r8wFgoZSYk6oua1Qo9XpsZjX"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
