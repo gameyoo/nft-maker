@@ -85,7 +85,7 @@ pub mod nft_maker {
 
         let recipient_tokens_key = associated_token::get_associated_token_address(
             ctx.accounts.recipient.key,
-            ctx.accounts.mint.to_account_info().key,
+            ctx.accounts.mint.key,
         );
         if &recipient_tokens_key != ctx.accounts.recipient_token.key {
             return Err(ErrorCode::InvalidAssociatedTokenAddress.into());
@@ -151,9 +151,9 @@ pub mod nft_maker {
 
         //minting NFT for player
         let cpi_accounts = MintTo {
-            mint: ctx.accounts.mint.to_account_info(),
-            to: ctx.accounts.recipient_token.to_account_info(),
-            authority: ctx.accounts.payer_vault.to_account_info(),
+            mint: ctx.accounts.mint.clone(),
+            to: ctx.accounts.recipient_token.clone(),
+            authority: ctx.accounts.payer_vault.clone(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(pda_signer);
@@ -171,7 +171,7 @@ pub mod nft_maker {
         let creators = vec![
             Creator {
                 address: *ctx.accounts.payer_vault.key,
-                verified: true,
+                verified: false,
                 share: 0,
             },
             Creator {
@@ -184,10 +184,10 @@ pub mod nft_maker {
         let create_metadata_account_ix = create_metadata_accounts(
             metaplex_program_id,
             metadata_account,
-            *ctx.accounts.mint.to_account_info().key,
-            *ctx.accounts.payer_vault.to_account_info().key,
-            *ctx.accounts.payer_vault.to_account_info().key,
-            *ctx.accounts.payer_vault.to_account_info().key,
+            *ctx.accounts.mint.key,
+            *ctx.accounts.payer_vault.key,
+            *ctx.accounts.payer_vault.key,
+            *ctx.accounts.payer_vault.key,
             name,
             symbol,
             uri,
@@ -201,7 +201,7 @@ pub mod nft_maker {
             &create_metadata_account_ix,
             &[
                 ctx.accounts.metadata.clone(),
-                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.mint.clone(),
                 ctx.accounts.payer_vault.clone(),
                 ctx.accounts.token_metadata_program.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
@@ -225,11 +225,11 @@ pub mod nft_maker {
         let create_master_edition_account_ix = create_master_edition(
             metaplex_program_id,
             master_edition_account,
-            *ctx.accounts.mint.to_account_info().key,
-            *ctx.accounts.payer_vault.to_account_info().key,
-            *ctx.accounts.payer_vault.to_account_info().key,
+            *ctx.accounts.mint.key,
+            *ctx.accounts.payer_vault.key,
+            *ctx.accounts.payer_vault.key,
             metadata_account,
-            *ctx.accounts.payer_vault.to_account_info().key,
+            *ctx.accounts.payer_vault.key,
             Some(0),
         );
 
@@ -238,7 +238,7 @@ pub mod nft_maker {
             &[
                 ctx.accounts.masteredition.clone(),
                 ctx.accounts.metadata.clone(),
-                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.mint.clone(),
                 ctx.accounts.payer_vault.clone(),
                 ctx.accounts.token_metadata_program.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
