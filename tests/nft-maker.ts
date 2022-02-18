@@ -24,7 +24,11 @@ describe('nft-maker', () => {
   const mintKey = Keypair.generate();
   const configKey = Keypair.generate();
 
-  const recipient = Keypair.generate();
+  //const recipient = Keypair.generate();
+
+  const recipient = new anchor.web3.PublicKey(
+    '2CM9rxUN5CwgYK1GHmUvokWr38LLr7iTcVucSXZW5BZ6',
+  );
 
 
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
@@ -67,12 +71,19 @@ describe('nft-maker', () => {
 
   
   it('mint one NFT!', async () => {
- 
+
+    const listener = program.addEventListener("MintEvent", (event, slot) => {
+      console.log("slot: ", slot);
+      console.log("event status: ", event.status);
+      console.log("event mint: ", event.mint);
+      console.log("event recipient: ", event.recipient);
+    });
+
     const assTokenKey = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
       mintKey.publicKey,
-      recipient.publicKey
+      recipient
     );
 
     const [vaultkey, nonce] = await PublicKey.findProgramAddress(
@@ -103,7 +114,7 @@ describe('nft-maker', () => {
     console.log("configKey: ", configKey.publicKey.toString());
     console.log("payerVault: ", vaultkey.toString());
 
-    console.log("recipient: ", recipient.publicKey.toString());
+    console.log("recipient: ", recipient.toString());
     console.log("assTokenKey: ", assTokenKey.toString());
 
     console.log("metadatakey: ", metadatakey.toString());
@@ -118,7 +129,7 @@ describe('nft-maker', () => {
       {
         accounts: {
           signer: provider.wallet.publicKey,
-          recipient: recipient.publicKey,
+          recipient: recipient,
           recipientToken: assTokenKey,
           payerVault: vaultkey,
           configuration: configKey.publicKey,
@@ -137,6 +148,9 @@ describe('nft-maker', () => {
       });
       
     console.log("tx:", tx);
+
+    await program.removeEventListener(listener);
+
   });
 
 

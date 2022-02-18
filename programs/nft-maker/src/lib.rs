@@ -249,6 +249,12 @@ pub mod nft_maker {
             pda_signer,
         )?;
 
+        emit!(MintEvent {
+            mint: ctx.accounts.mint.key.to_string(),
+            recipient: ctx.accounts.recipient.key.to_string(),
+            status: "ok".to_string(),
+        });
+
         Ok(())
     }
 }
@@ -329,7 +335,15 @@ pub struct MintingNFT<'info> {
     
 }
 
-
+#[event]
+pub struct MintEvent {
+    #[index]
+    pub mint: String,
+    #[index]
+    pub recipient: String,
+    #[index]
+    pub status: String,
+}
 
 #[error]
 pub enum ErrorCode {
