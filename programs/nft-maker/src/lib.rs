@@ -249,9 +249,12 @@ pub mod nft_maker {
             pda_signer,
         )?;
 
+        ctx.accounts.configuration.nft_count += 1;
+
         emit!(MintEvent {
             mint: ctx.accounts.mint.key.to_string(),
             recipient: ctx.accounts.recipient.key.to_string(),
+            nft_count: ctx.accounts.configuration.nft_count.to_string(),
             status: "ok".to_string(),
         });
 
@@ -343,6 +346,7 @@ pub struct MintEvent {
     pub recipient: String,
     #[index]
     pub status: String,
+    pub nft_count: String,
 }
 
 #[error]

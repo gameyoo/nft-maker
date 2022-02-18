@@ -77,6 +77,8 @@ describe('nft-maker', () => {
       console.log("event status: ", event.status);
       console.log("event mint: ", event.mint);
       console.log("event recipient: ", event.recipient);
+      console.log("event nft count: ", event.nftCount);
+      program.removeEventListener(listener);
     });
 
     const assTokenKey = await Token.getAssociatedTokenAddress(
@@ -148,8 +150,6 @@ describe('nft-maker', () => {
       });
       
     console.log("tx:", tx);
-
-    await program.removeEventListener(listener);
 
   });
 
