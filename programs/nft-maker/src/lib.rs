@@ -35,8 +35,9 @@ declare_id!("Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E");
 pub mod nft_maker {
     use super::*;
     pub fn initialize(
-        ctx: Context<Initialize>, 
-        nonce: u8, 
+        ctx: Context<Initialize>,
+        config_nonce: u8,
+        vault_nonce: u8,
         authority: Pubkey,
         amount: u64,
     ) -> ProgramResult {
@@ -45,7 +46,8 @@ pub mod nft_maker {
         config.nft_count = 0;
         config.payer_vault = *ctx.accounts.payer_vault.key;
         config.authority = authority;
-        config.nonce = nonce;
+        config.config_nonce = config_nonce;
+        config.vault_nonce = vault_nonce;
 
         if amount != 0 {
             invoke(
@@ -75,14 +77,6 @@ pub mod nft_maker {
     ) -> ProgramResult {
         msg!("Start minting NFT.");
 
-        if ctx.accounts.configuration.payer_vault != *ctx.accounts.payer_vault.key {
-            return Err(ErrorCode::PayerVaultMismatch.into());
-        }
-
-        if ctx.accounts.configuration.authority != *ctx.accounts.signer.to_account_info().key {
-            return Err(ErrorCode::Unauthorized.into());
-        }
-
         let recipient_tokens_key = associated_token::get_associated_token_address(
             ctx.accounts.recipient.key,
             ctx.accounts.mint.key,
@@ -97,7 +91,7 @@ pub mod nft_maker {
         let config = &ctx.accounts.configuration;
         let seeds = &[
             config.to_account_info().key.as_ref(),
-            &[config.nonce],
+            &[config.config_nonce],
         ];
         let pda_signer = &[&seeds[..]];
 
@@ -263,22 +257,22 @@ pub mod nft_maker {
 }
 
 #[derive(Accounts)]
-#[instruction(nonce: u8)]
+#[instruction(config_nonce: u8, vault_nonce: u8)]
 pub struct Initialize<'info> {
-    
+    #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         mut,
         seeds = [configuration.to_account_info().key.as_ref()], 
-        bump = nonce,
+        bump = vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
    
     #[account(
         init, payer = signer,
-        owner = id(),
-        rent_exempt = enforce,
+        seeds = [b"nft-maker".as_ref()],
+        bump = config_nonce,
     )]
     pub configuration: Box<Account<'info, Configuration>>,
 
@@ -290,7 +284,8 @@ pub struct Initialize<'info> {
 #[account]
 #[derive(Default)]
 pub struct Configuration {
-    pub nonce: u8,
+    pub config_nonce: u8,
+    pub vault_nonce: u8,
     pub authority: Pubkey,
     pub payer_vault: Pubkey,
 
@@ -310,13 +305,16 @@ pub struct MintingNFT<'info> {
     #[account(
         mut,
         seeds = [configuration.to_account_info().key.as_ref()],
-        bump = configuration.nonce,
+        bump = configuration.vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
 
     #[account(
         mut,
-        owner = id() @ErrorCode::InvalidOwner,
+        seeds = [b"nft-maker".as_ref()],
+        bump = configuration.config_nonce,
+        constraint = configuration.payer_vault == payer_vault.key() @ErrorCode::PayerVaultMismatch,
+        constraint = configuration.authority == signer.key() @ErrorCode::Unauthorized,
     )]
     pub configuration: Box<Account<'info, Configuration>>,
 

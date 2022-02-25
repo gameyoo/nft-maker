@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { NftMaker } from '../target/types/nft_maker';
 
 import { Program, BN, IdlAccounts } from "@project-serum/anchor";
-import { PublicKey, Keypair, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { PublicKey, Keypair, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, } from "@solana/web3.js";
 import { Creator } from "@metaplex-foundation/mpl-token-metadata";
 const {
   TOKEN_PROGRAM_ID, 
@@ -22,7 +22,9 @@ describe('nft-maker', () => {
   const program = anchor.workspace.NftMaker as Program<NftMaker>;
 
   const mintKey = Keypair.generate();
-  const configKey = Keypair.generate();
+  
+  //const seed = Math.random().toString(36).slice(-6);
+  const seed = "nft-maker";
 
   //const recipient = Keypair.generate();
 
@@ -30,39 +32,42 @@ describe('nft-maker', () => {
     '2CM9rxUN5CwgYK1GHmUvokWr38LLr7iTcVucSXZW5BZ6',
   );
 
-
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+    //'HEWg1Mcwh5bEWUXirSriBucyCGw9wuRzEpioqY4YCZEZ',
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
-    //'HEWg1Mcwh5bEWUXirSriBucyCGw9wuRzEpioqY4YCZEZ'
   );
 
   it('Is initialized!', async () => {
-    // Add your test here.
+    const [configKey, configNonce] = await PublicKey.findProgramAddress(
+      [Buffer.from(seed)],
+      program.programId
+    );
 
-    const [vaultkey, nonce] = await PublicKey.findProgramAddress(
-      [configKey.publicKey.toBuffer()],
+    const [vaultkey, vaultNonce] = await PublicKey.findProgramAddress(
+      [configKey.toBuffer()],
       program.programId
     );
 
     console.log("mint: ", mintKey.publicKey.toString());
-    console.log("configKey: ", configKey.publicKey.toString());
+    console.log("configKey: ", configKey.toString());
     console.log("vaultkey: ", vaultkey.toString());
   
     const amount = new BN(100000000);
     
     const tx = await program.rpc.initialize(
-      nonce,
+      configNonce,
+      vaultNonce,
       provider.wallet.publicKey,
       amount,
       {
         accounts: {
           signer: provider.wallet.publicKey,
           payerVault: vaultkey,
-          configuration: configKey.publicKey,
+          configuration: configKey,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY
         },
-        signers: [provider.wallet.payer, configKey],
+        signers: [provider.wallet.payer],
 
       });
       
@@ -88,8 +93,13 @@ describe('nft-maker', () => {
       recipient
     );
 
+    const [configKey, ] = await PublicKey.findProgramAddress(
+      [Buffer.from(seed)],
+      program.programId
+    );
+
     const [vaultkey, nonce] = await PublicKey.findProgramAddress(
-      [configKey.publicKey.toBuffer()],
+      [configKey.toBuffer()],
       program.programId
     );
   
@@ -113,7 +123,7 @@ describe('nft-maker', () => {
     );
 
     console.log("mintKey: ", mintKey.publicKey.toString());
-    console.log("configKey: ", configKey.publicKey.toString());
+    console.log("configKey: ", configKey.toString());
     console.log("payerVault: ", vaultkey.toString());
 
     console.log("recipient: ", recipient.toString());
@@ -134,7 +144,7 @@ describe('nft-maker', () => {
           recipient: recipient,
           recipientToken: assTokenKey,
           payerVault: vaultkey,
-          configuration: configKey.publicKey,
+          configuration: configKey,
           mint: mintKey.publicKey,
           metadata: metadatakey,
           masteredition: masterkey,
@@ -152,8 +162,6 @@ describe('nft-maker', () => {
     console.log("tx:", tx);
 
   });
-
-
 
 
 });
