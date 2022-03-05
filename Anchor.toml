@@ -1,11 +1,11 @@
 [programs.localnet]
-nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
+nft_maker = "HW6rBHPcBYePNBgkEFRvRy8YhS7S7NnJ2rEeSoj7Q6jG"
 [programs.devnet]
-nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
+nft_maker = "HW6rBHPcBYePNBgkEFRvRy8YhS7S7NnJ2rEeSoj7Q6jG"
 [programs.testnet]
-nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
+nft_maker = "HW6rBHPcBYePNBgkEFRvRy8YhS7S7NnJ2rEeSoj7Q6jG"
 [programs.mainnet]
-nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
+nft_maker = "HW6rBHPcBYePNBgkEFRvRy8YhS7S7NnJ2rEeSoj7Q6jG"
 
 [registry]
 url = "https://anchor.projectserum.com"

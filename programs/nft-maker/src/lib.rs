@@ -27,7 +27,7 @@ use mpl_token_metadata::{
 };
 
 
-declare_id!("Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E");
+declare_id!("HW6rBHPcBYePNBgkEFRvRy8YhS7S7NnJ2rEeSoj7Q6jG");
 
 #[program]
 pub mod nft_maker {
