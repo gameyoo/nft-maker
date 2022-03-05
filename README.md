@@ -42,6 +42,8 @@ starting a local validator with load mpl_token_metadata.so program at destinatio
 > git clone https://github.com/gameyoo/nft-maker.git
 >
 > cd nft-maker
+> 
+> yarn install
 >
 > anchor build
 >
