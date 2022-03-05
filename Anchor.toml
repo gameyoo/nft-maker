@@ -11,7 +11,7 @@ nft_maker = "Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

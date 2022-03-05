@@ -19,8 +19,6 @@ use anchor_spl::{
 use mpl_token_metadata::{
     instruction::{
         create_metadata_accounts, create_master_edition, 
-        //update_metadata_accounts,
-
     },
     state::{
         Creator,
@@ -34,6 +32,12 @@ declare_id!("Eyzo28Tk19g28ojXwPQPGDAWyjCKqtvy1KzJwdArUH1E");
 #[program]
 pub mod nft_maker {
     use super::*;
+
+    ///initialize program
+    /// config_nonce: The PDA nonce of config account
+    /// vault_nonce: The PDA nonce of payer vault account
+    /// authority: The pubkey of minting permission
+    /// amount: the count of lamports that transfer from initializer to payer vault
     pub fn initialize(
         ctx: Context<Initialize>,
         config_nonce: u8,
@@ -41,14 +45,15 @@ pub mod nft_maker {
         authority: Pubkey,
         amount: u64,
     ) -> ProgramResult {
-        msg!("Initializing NFT maker configuration.");
-        let config = &mut ctx.accounts.configuration;
+        //initialize configuration
+        let config = &mut ctx.accounts.nft_mint_settings;
         config.nft_count = 0;
         config.payer_vault = *ctx.accounts.payer_vault.key;
         config.authority = authority;
         config.config_nonce = config_nonce;
         config.vault_nonce = vault_nonce;
 
+        // transfer sol token to payer_vault if amount != 0
         if amount != 0 {
             invoke(
                 &transfer(
@@ -67,6 +72,12 @@ pub mod nft_maker {
         Ok(())
     }
 
+    ///minting NFT for Users
+    /// name: the name of NFT
+    /// symbol: the symbol of NFT
+    /// uri: URI to the external JSON representing the asset
+    /// seller_fee_basis_points: royalties percentage awarded to creators
+    /// immutable: Whether or not the data struct is mutable, default is not
     pub fn minting_nft(
         ctx: Context<MintingNFT>,
         name: String,
@@ -75,27 +86,17 @@ pub mod nft_maker {
         seller_fee_basis_points: u16,
         immutable: bool
     ) -> ProgramResult {
-        msg!("Start minting NFT.");
-
-        let recipient_tokens_key = associated_token::get_associated_token_address(
-            ctx.accounts.recipient.key,
-            ctx.accounts.mint.key,
-        );
-        if &recipient_tokens_key != ctx.accounts.recipient_token.key {
-            return Err(ErrorCode::InvalidAssociatedTokenAddress.into());
-        }
 
         let metaplex_program_id = mpl_token_metadata::ID;
-        //let metaplex_program_id = *ctx.accounts.token_metadata_program.key;
 
-        let config = &ctx.accounts.configuration;
+        let config = &ctx.accounts.nft_mint_settings;
         let seeds = &[
             config.to_account_info().key.as_ref(),
             &[config.config_nonce],
         ];
         let pda_signer = &[&seeds[..]];
 
-        //create mint
+        //create mint account, the payer must be payer_vault
         let rent = Rent::get()?;
         let lamports = rent.minimum_balance(Mint::LEN);
         invoke_signed(
@@ -127,7 +128,7 @@ pub mod nft_maker {
             Option::<&Pubkey>::Some(ctx.accounts.payer_vault.key),
         )?;
  
-        //create associated token account for player
+        //create associated token account for user
         if ctx.accounts.recipient_token.data_is_empty() {
             let cpi_accounts = Create {
                 payer: ctx.accounts.payer_vault.clone(),
@@ -143,7 +144,7 @@ pub mod nft_maker {
             associated_token::create(cpi_ctx)?;
         }
 
-        //minting NFT for player
+        //minting NFT for user
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint.clone(),
             to: ctx.accounts.recipient_token.clone(),
@@ -153,7 +154,7 @@ pub mod nft_maker {
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(pda_signer);
         token::mint_to(cpi_ctx, 1)?;
 
-        //Derive metadata account
+        //create derive metadata account
         let metadata_seeds = &[
             "metadata".as_bytes(),
             metaplex_program_id.as_ref(),
@@ -188,7 +189,8 @@ pub mod nft_maker {
             Some(creators), 
             seller_fee_basis_points,
             true,
-            !immutable
+            !immutable,
+            
         );
 
         invoke_signed(
@@ -206,7 +208,7 @@ pub mod nft_maker {
             pda_signer,
         )?;
 
-        // Derive Master Edition account
+        //Create derive Master Edition account
         let master_edition_seeds = &[
             "metadata".as_bytes(),
             metaplex_program_id.as_ref(),
@@ -243,12 +245,13 @@ pub mod nft_maker {
             pda_signer,
         )?;
 
-        ctx.accounts.configuration.nft_count += 1;
+        ctx.accounts.nft_mint_settings.nft_count += 1;
 
+        //emit mint event to client
         emit!(MintEvent {
             mint: ctx.accounts.mint.key.to_string(),
             recipient: ctx.accounts.recipient.key.to_string(),
-            nft_count: ctx.accounts.configuration.nft_count.to_string(),
+            nft_count: ctx.accounts.nft_mint_settings.nft_count.to_string(),
             status: "ok".to_string(),
         });
 
@@ -256,6 +259,12 @@ pub mod nft_maker {
     }
 }
 
+///The accounts of Initialize instruction
+/// signer: the initializer, the signer and fee payer
+/// payer_vault: the vault account (PDA) for payer
+/// nft_mint_settings: the account (PDA) for saving configuration
+/// system_program: System program
+/// rent: rent info
 #[derive(Accounts)]
 #[instruction(config_nonce: u8, vault_nonce: u8)]
 pub struct Initialize<'info> {
@@ -264,7 +273,7 @@ pub struct Initialize<'info> {
 
     #[account(
         mut,
-        seeds = [configuration.to_account_info().key.as_ref()], 
+        seeds = [nft_mint_settings.to_account_info().key.as_ref()], 
         bump = vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
@@ -274,7 +283,7 @@ pub struct Initialize<'info> {
         seeds = [b"nft-maker".as_ref()],
         bump = config_nonce,
     )]
-    pub configuration: Box<Account<'info, Configuration>>,
+    pub nft_mint_settings: Box<Account<'info, NFTMintSettings>>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -283,15 +292,34 @@ pub struct Initialize<'info> {
 
 #[account]
 #[derive(Default)]
-pub struct Configuration {
+pub struct NFTMintSettings {
+    //The PDA nonce of config account
     pub config_nonce: u8,
+    //The PDA nonce of payer vault account
     pub vault_nonce: u8,
+    //The account of minting permission
     pub authority: Pubkey,
+    //The PDA of payment account
     pub payer_vault: Pubkey,
-
+    //Number of NFT's that had been minted
     pub nft_count: u64,
 }
 
+///The accounts of MintingNFT instruction
+/// signer: the account of caller that must have permission to invoke this instruction.
+/// recipient: the account for receiving NFT
+/// recipient_token: the associated token accounts for NFT mint
+/// payer_vault: the PDA of payment account
+/// nft_mint_settings: the PDA of save NFT settings
+/// mint: the NFT mint account
+/// metadata: the account for NFT metadata
+/// masteredition: the account for NFT master edition metadata
+/// token_metadata_program: the metaplex metadata program
+/// token_program: the token program of SPL
+/// associated_token_program: the associated token program of SPL
+/// system_program: system program
+/// clock: the clock information
+/// rent: the rent information
 #[derive(Accounts)]
 pub struct MintingNFT<'info> {
     #[account(mut)]
@@ -303,20 +331,18 @@ pub struct MintingNFT<'info> {
     pub recipient_token: AccountInfo<'info>,
 
     #[account(
-        mut,
-        seeds = [configuration.to_account_info().key.as_ref()],
-        bump = configuration.vault_nonce,
+        mut
     )]
     pub payer_vault: AccountInfo<'info>,
 
     #[account(
         mut,
         seeds = [b"nft-maker".as_ref()],
-        bump = configuration.config_nonce,
-        constraint = configuration.payer_vault == payer_vault.key() @ErrorCode::PayerVaultMismatch,
-        constraint = configuration.authority == signer.key() @ErrorCode::Unauthorized,
+        bump = nft_mint_settings.config_nonce,
+        constraint = nft_mint_settings.payer_vault == payer_vault.key() @ErrorCode::PayerVaultMismatch,
+        constraint = nft_mint_settings.authority == signer.key() @ErrorCode::Unauthorized,
     )]
-    pub configuration: Box<Account<'info, Configuration>>,
+    pub nft_mint_settings: Box<Account<'info, NFTMintSettings>>,
 
     #[account(mut, signer)]
     pub mint: AccountInfo<'info>,
