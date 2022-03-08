@@ -84,17 +84,25 @@ pub mod nft_maker {
         symbol: String,
         uri: String,
         seller_fee_basis_points: u16,
-        immutable: bool
+        immutable: bool,
+        mint_nonce: u8,
     ) -> ProgramResult {
 
         let metaplex_program_id = mpl_token_metadata::ID;
 
         let config = &ctx.accounts.nft_mint_settings;
-        let seeds = &[
+        let vault_seeds = &[
             config.to_account_info().key.as_ref(),
             &[config.config_nonce],
         ];
-        let pda_signer = &[&seeds[..]];
+
+        let nft_id = symbol.clone();
+        let mint_seeds = &[
+            nft_id.as_bytes(),
+            &[mint_nonce],
+        ];
+
+        let pda_signer = &[&vault_seeds[..], &mint_seeds[..]];
 
         //create mint account, the payer must be payer_vault
         let rent = Rent::get()?;
@@ -344,7 +352,7 @@ pub struct MintingNFT<'info> {
     )]
     pub nft_mint_settings: Box<Account<'info, NFTMintSettings>>,
 
-    #[account(mut, signer)]
+    #[account(mut)]
     pub mint: AccountInfo<'info>,
 
     #[account(mut)]

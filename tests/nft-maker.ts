@@ -27,7 +27,7 @@ describe('nft-maker', () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.NftMaker as Program<NftMaker>;
-  const mintKey = Keypair.generate();
+
   const seed = "nft-maker";
   const recipient = Keypair.generate().publicKey;
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
@@ -46,7 +46,6 @@ describe('nft-maker', () => {
       program.programId
     );
 
-    console.log("mint: ", mintKey.publicKey.toString());
     console.log("configKey: ", configKey.toString());
     console.log("vaultkey: ", vaultkey.toString());
 
@@ -78,7 +77,7 @@ describe('nft-maker', () => {
     
   });
 
-  
+ 
   it('mint one NFT!', async () => {
 
     const listener = program.addEventListener("MintEvent", (event, slot) => {
@@ -90,10 +89,15 @@ describe('nft-maker', () => {
       program.removeEventListener(listener);
     });
 
+    const [mintKey, mintNonce] = await PublicKey.findProgramAddress(
+      [Buffer.from("6876875475")],
+      program.programId
+    );
+
     const assTokenKey = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      mintKey.publicKey,
+      mintKey,
       recipient
     );
 
@@ -111,7 +115,7 @@ describe('nft-maker', () => {
       [
         Buffer.from('metadata'),
         TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mintKey.publicKey.toBuffer(),
+        mintKey.toBuffer(),
       ],
       TOKEN_METADATA_PROGRAM_ID,
     );
@@ -120,13 +124,13 @@ describe('nft-maker', () => {
       [
         Buffer.from('metadata'),
         TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mintKey.publicKey.toBuffer(),
+        mintKey.toBuffer(),
         Buffer.from('edition'),
       ],
       TOKEN_METADATA_PROGRAM_ID,
     );
 
-    console.log("mintKey: ", mintKey.publicKey.toString());
+    console.log("mintKey: ", mintKey.toString());
     console.log("configKey: ", configKey.toString());
     console.log("payerVault: ", vaultkey.toString());
 
@@ -142,6 +146,7 @@ describe('nft-maker', () => {
       "https://arweave.net/sCuT4ASiUgq7JxgU_3aoq0xJLpwH2Z1z2R2_xwPM8uc",
       1000,
       false,
+      mintNonce,
       {
         accounts: {
           signer: provider.wallet.publicKey,
@@ -149,7 +154,7 @@ describe('nft-maker', () => {
           recipientToken: assTokenKey,
           payerVault: vaultkey,
           nftMintSettings: configKey,
-          mint: mintKey.publicKey,
+          mint: mintKey,
           metadata: metadatakey,
           masteredition: masterkey,
           tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
@@ -159,7 +164,7 @@ describe('nft-maker', () => {
           clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY
         },
-        signers: [provider.wallet.payer, mintKey],
+        signers: [provider.wallet.payer],
 
       });
       
