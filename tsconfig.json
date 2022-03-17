@@ -1,10 +1,22 @@
 {
   "compilerOptions": {
-    "types": ["mocha", "chai"],
-    "typeRoots": ["./node_modules/@types"],
-    "lib": ["es2015"],
+    "lib": [
+      "es5",
+      "es6",
+      "es7"
+    ],
     "module": "commonjs",
-    "target": "es6",
-    "esModuleInterop": true
-  }
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "target": "es2017",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+
+  "exclude": [
+    "node_modules"
+  ]
 }

@@ -8,6 +8,9 @@ import {
   SystemProgram, 
   SYSVAR_RENT_PUBKEY, 
   LAMPORTS_PER_SOL,
+  AccountMeta,
+  TransactionInstruction,
+  Transaction,
 
 } from "@solana/web3.js";
 
@@ -18,6 +21,9 @@ const {
   ASSOCIATED_TOKEN_PROGRAM_ID, 
   Token
 } = require("@solana/spl-token");
+
+import { struct, u8, u32 } from '@solana/buffer-layout';
+
 
 
 describe('nft-maker', () => {
@@ -90,7 +96,7 @@ describe('nft-maker', () => {
     });
 
     const [mintKey, mintNonce] = await PublicKey.findProgramAddress(
-      [Buffer.from("6876875475")],
+      [Buffer.from("7876875575")],
       program.programId
     );
 
@@ -140,9 +146,51 @@ describe('nft-maker', () => {
     console.log("metadatakey: ", metadatakey.toString());
     console.log("masterkey: ", masterkey.toString());
 
-    const tx = await program.rpc.mintingNft(
+    
+    enum TokenInstruction {
+      RequestUnits = 0,
+      RequestHeapFrame = 1,
+    }
+    interface RequestUnitsInstructionData {
+      instruction: TokenInstruction.RequestUnits;
+      units: number;
+      additional_fee: number;
+    }
+
+    const burnCheckedInstructionData = struct<RequestUnitsInstructionData>([
+      u8('instruction'),
+      u32('units'),
+      u32('additional_fee'),
+    ]);
+
+    function createRequestUnitsInstruction(
+      units: number,
+      additional_fee: number
+    ): TransactionInstruction {
+      const keys: AccountMeta[] = [];
+      const data = Buffer.alloc(burnCheckedInstructionData.span);
+      burnCheckedInstructionData.encode(
+          {
+              instruction: TokenInstruction.RequestUnits,
+              units,
+              additional_fee,
+          },
+          data
+      );
+      const programId = new PublicKey('ComputeBudget111111111111111111111111111111');
+
+      return new TransactionInstruction({
+          programId,
+          keys,
+          data
+      });
+
+    }
+
+    
+    const mintNftIns = await program.instruction.mintingNft(
       "test-NFT",
-      "6876875475",
+      "7876875575",
       "https://arweave.net/sCuT4ASiUgq7JxgU_3aoq0xJLpwH2Z1z2R2_xwPM8uc",
       1000,
       false,
@@ -165,10 +213,18 @@ describe('nft-maker', () => {
           rent: anchor.web3.SYSVAR_RENT_PUBKEY
         },
         signers: [provider.wallet.payer],
-
+        
       });
-      
-    console.log("tx:", tx);
+
+    const requestUnitsIns = createRequestUnitsInstruction(250000, 0);
+    const trans = new Transaction().add(
+      requestUnitsIns,
+    )
+    .add(
+      mintNftIns,
+    );
+    const tx = await provider.send(trans);
+    console.log("tx: ", tx);
 
   });
 

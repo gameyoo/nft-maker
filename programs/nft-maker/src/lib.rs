@@ -18,7 +18,7 @@ use anchor_spl::{
 };
 use mpl_token_metadata::{
     instruction::{
-        create_metadata_accounts, create_master_edition, 
+        create_metadata_accounts_v2, create_master_edition_v3, 
     },
     state::{
         Creator,
@@ -184,7 +184,7 @@ pub mod nft_maker {
             }
         ];
 
-        let create_metadata_account_ix = create_metadata_accounts(
+        let create_metadata_account_ix = create_metadata_accounts_v2(
             metaplex_program_id,
             metadata_account,
             *ctx.accounts.mint.key,
@@ -198,7 +198,8 @@ pub mod nft_maker {
             seller_fee_basis_points,
             true,
             !immutable,
-            
+            None,
+            None
         );
 
         invoke_signed(
@@ -226,7 +227,7 @@ pub mod nft_maker {
         let (master_edition_account, _pda) =
             Pubkey::find_program_address(master_edition_seeds, &metaplex_program_id);
 
-        let create_master_edition_account_ix = create_master_edition(
+        let create_master_edition_account_ix = create_master_edition_v3(
             metaplex_program_id,
             master_edition_account,
             *ctx.accounts.mint.key,
@@ -339,7 +340,9 @@ pub struct MintingNFT<'info> {
     pub recipient_token: AccountInfo<'info>,
 
     #[account(
-        mut
+        mut,
+        seeds = [nft_mint_settings.to_account_info().key.as_ref()], 
+        bump = nft_mint_settings.vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
 
