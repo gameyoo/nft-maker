@@ -188,7 +188,7 @@ describe('nft-maker', () => {
     }
 
     
-    const mintNftIns = await program.instruction.mintingNft(
+    const mintNftIns = program.instruction.mintingNft(
       "test-NFT",
       "7876875575",
       "https://arweave.net/sCuT4ASiUgq7JxgU_3aoq0xJLpwH2Z1z2R2_xwPM8uc",
