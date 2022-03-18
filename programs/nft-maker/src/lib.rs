@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::system_program;
 use anchor_lang::solana_program::{
     program::{
         invoke_signed, invoke,
@@ -18,7 +19,7 @@ use anchor_spl::{
 };
 use mpl_token_metadata::{
     instruction::{
-        create_metadata_accounts_v2, create_master_edition_v3, 
+        create_metadata_accounts_v2, create_master_edition_v3,
     },
     state::{
         Creator,
@@ -135,7 +136,7 @@ pub mod nft_maker {
             ctx.accounts.payer_vault.key,
             Option::<&Pubkey>::Some(ctx.accounts.payer_vault.key),
         )?;
- 
+
         //create associated token account for user
         if ctx.accounts.recipient_token.data_is_empty() {
             let cpi_accounts = Create {
@@ -194,7 +195,7 @@ pub mod nft_maker {
             name,
             symbol,
             uri,
-            Some(creators), 
+            Some(creators),
             seller_fee_basis_points,
             true,
             !immutable,
@@ -282,11 +283,11 @@ pub struct Initialize<'info> {
 
     #[account(
         mut,
-        seeds = [nft_mint_settings.to_account_info().key.as_ref()], 
+        seeds = [nft_mint_settings.to_account_info().key.as_ref()],
         bump = vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
-   
+
     #[account(
         init, payer = signer,
         seeds = [b"nft-maker".as_ref()],
@@ -294,7 +295,10 @@ pub struct Initialize<'info> {
     )]
     pub nft_mint_settings: Box<Account<'info, NFTMintSettings>>,
 
+    #[account(address = system_program::ID)]
     pub system_program: Program<'info, System>,
+
+    #[account(address = solana_program::sysvar::rent::ID)]
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -333,7 +337,7 @@ pub struct NFTMintSettings {
 pub struct MintingNFT<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    
+
     pub recipient: AccountInfo<'info>,
 
     #[account(mut)]
@@ -341,7 +345,7 @@ pub struct MintingNFT<'info> {
 
     #[account(
         mut,
-        seeds = [nft_mint_settings.to_account_info().key.as_ref()], 
+        seeds = [nft_mint_settings.to_account_info().key.as_ref()],
         bump = nft_mint_settings.vault_nonce,
     )]
     pub payer_vault: AccountInfo<'info>,
@@ -364,13 +368,24 @@ pub struct MintingNFT<'info> {
     #[account(mut)]
     pub masteredition: AccountInfo<'info>,
 
+    #[account(address = mpl_token_metadata::ID)]
     pub token_metadata_program: AccountInfo<'info>,
+
+    #[account(address = token::ID)]
     pub token_program: Program<'info, Token>,
+
+    #[account(address = associated_token::ID)]
     pub associated_token_program: Program<'info, AssociatedToken>,
+
+    #[account(address = system_program::ID)]
     pub system_program: Program<'info, System>,
+
+    #[account(address = solana_program::sysvar::clock::ID)]
     pub clock: Sysvar<'info, Clock>,
+
+    #[account(address = solana_program::sysvar::rent::ID)]
     pub rent: Sysvar<'info, Rent>,
-    
+
 }
 
 #[event]
@@ -394,5 +409,5 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Invalid associated token address. Did you provide the correct address?")]
     InvalidAssociatedTokenAddress,
-   
+
 }
